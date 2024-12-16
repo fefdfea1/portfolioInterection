@@ -1,0 +1,39 @@
+.header {
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  height: 100px;
+  font-size: 18px;
+  font-weight: 700;
+  z-index: 2;
+}
+
+.header > .sticker {
+  width: 80px;
+  height: 80px;
+  position: relative;
+  border-radius: 50%;
+  font-size: 12px;
+}
+
+.sticker .sticker-img {
+  background-color: var(--stickerBg);
+}
+
+.sticker > p {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: var(--stickerFontColor);
+  z-index: 999;
+}
+
+.header .sticker-shadow {
+  opacity: 0.6;
+}
+
+.header > a:nth-of-type(1n + 1) {
+  margin-left: 30px;
+  color: var(--HeaderFontColor);
+}
