@@ -18,9 +18,10 @@ let calcMouseSpeed = 0;
 let prevMousePositionY = 0;
 let currentVelocity = 0;
 let animationFrameId = null;
-let isInfiniteCardMoveTop = false;
-let isInfiniteCardMoveBottom = false;
+
+let canSeeTarget = false;
 let totalFirstRotateDeg = 0;
+
 let lastTime = Date.now();
 export function mouseDownHandler() {
   clearHandler();
@@ -75,29 +76,28 @@ export function calcMoveValue(currentVelocity, friction) {
   return animate();
 }
 
-function infiniteCardMoveHandler(firstItem, lastItem, moveX) {
+function infiniteCardMoveHandler(firstItem, lastItem) {
   const firstItemRotate = rotateValueExtraction(firstItem);
   const lastItemRotate = rotateValueExtraction(lastItem);
-  if (firstItemRotate <= totalFirstRotateDeg - 22.5 && !isInfiniteCardMoveTop) {
-    isInfiniteCardMoveTop = true;
-    console.log(firstItemRotate);
-    infiniteCardMove(firstItem, lastItem, moveX);
-  } else if (lastItemRotate >= 40 && !isInfiniteCardMoveTop) {
-    isInfiniteCardMoveTop = true;
-    infiniteCardMove(firstItem, lastItem, moveX - 22.5, moveRotate);
+  if (!canSeeTarget) {
+    addObserver(firstItem, lastItem);
   }
 }
 
-function infiniteCardMove(firstItem, lastItem, moveX) {
+async function infiniteCardMove(firstItem, lastItem) {
   // DOM 업데이트를 위한 시간 필요
   // 스타일 적용
-  totalFirstRotateDeg = rotateValueExtraction(firstItem) + 22.5;
-
-  lastItem.style.transform = `rotate(${totalFirstRotateDeg}deg) translateX(0.01px) translateY(-70vh)`;
-
-  lastItem.remove();
-  circleContainer.insertAdjacentElement("afterbegin", lastItem);
-  isInfiniteCardMoveTop = false; // 플래그 리셋
+  if (currentVelocity < 0) {
+    lastItem.remove();
+    totalFirstRotateDeg = rotateValueExtraction(firstItem) + 22.5;
+    circleContainer.insertAdjacentElement("afterbegin", lastItem);
+    lastItem.style.transform = `rotate(${totalFirstRotateDeg}deg) translateY(-70vh)`;
+  } else if (currentVelocity > 0) {
+    firstItem.remove();
+    totalFirstRotateDeg = rotateValueExtraction(lastItem) - 22.5;
+    circleContainer.insertAdjacentElement("beforeend", firstItem);
+    firstItem.style.transform = `rotate(${totalFirstRotateDeg}deg) translateY(-70vh)`;
+  }
 }
 
 function mouseMoveHandler(event) {
@@ -123,7 +123,7 @@ function mouseMoveHandler(event) {
       Math.min(MIN_TranslateX, moveX)
     );
     applyStyle(items[i], moveTranslateX, moveRotate);
-    infiniteCardMoveHandler(items[0], items[items.length - 1], moveTranslateX);
+    infiniteCardMoveHandler(items[0], items[items.length - 1]);
   }
 
   lastTime = currentTime;
@@ -145,6 +145,31 @@ function clearHandler() {
   window.removeEventListener("mousemove", mouseMoveHandler);
   window.removeEventListener("mouseup", mouseUpHandler);
   window.removeEventListener("mouseleave", leaveHandler);
+}
+
+function addObserver(firstItem, lastItem) {
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach((entry) => {
+      if (entry.isIntersecting && currentVelocity < 0) {
+        infiniteCardMove(firstItem, lastItem);
+        removeObserver(firstItem, lastItem, observer);
+      } else if (entry.isIntersecting && currentVelocity > 0) {
+        infiniteCardMove(firstItem, lastItem);
+        removeObserver(firstItem, lastItem, observer);
+      }
+      canSeeTarget = false;
+    });
+  });
+  if (currentVelocity < 0) {
+    observer.observe(firstItem);
+  } else if (currentVelocity > 0) {
+    observer.observe(lastItem);
+  }
+}
+
+function removeObserver(firstItem, lastItem, observer) {
+  observer.unobserve(firstItem);
+  observer.unobserve(lastItem);
 }
 
 // 마우스를 클릭하면 현재 마우스 좌표를 저장하고 이동범위를 계산한다.
